@@ -1,12 +1,35 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import Header from "@/components/Header";
+import HeroBanner from "@/components/HeroBanner";
+import MovieCarousel from "@/components/MovieCarousel";
+import Footer from "@/components/Footer";
+import { nowShowingMovies, comingSoonMovies, trendingMovies } from "@/data/movies";
 
 const Index = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <Header />
+      <main>
+        <HeroBanner />
+        
+        <MovieCarousel
+          title="NOW SHOWING"
+          subtitle="Book tickets for movies currently in theaters"
+          movies={nowShowingMovies}
+        />
+        
+        <MovieCarousel
+          title="COMING SOON"
+          subtitle="Get notified when tickets go on sale"
+          movies={comingSoonMovies}
+        />
+        
+        <MovieCarousel
+          title="TRENDING"
+          subtitle="Most popular movies this week"
+          movies={trendingMovies}
+        />
+      </main>
+      <Footer />
     </div>
   );
 };
