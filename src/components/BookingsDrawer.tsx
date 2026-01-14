@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Ticket, Calendar, Clock, Loader2 } from "lucide-react";
+import { X, Ticket, Calendar, Clock, Loader2, MapPin } from "lucide-react";
 import { useBookings } from "@/hooks/useBookings";
 import { format } from "date-fns";
 
@@ -103,6 +103,12 @@ const BookingsDrawer = ({ isOpen, onClose }: BookingsDrawerProps) => {
                           </div>
 
                           <div className="mt-2 space-y-1">
+                            {booking.theaters && (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <MapPin className="w-4 h-4" />
+                                <span>{booking.theaters.name}</span>
+                              </div>
+                            )}
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Calendar className="w-4 h-4" />
                               <span>
