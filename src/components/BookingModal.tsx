@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Calendar, Clock, Users, CreditCard, Loader2, CheckCircle, MapPin, Star } from "lucide-react";
+import { X, Calendar, Clock, Users, CreditCard, Loader2, CheckCircle, MapPin, Armchair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCreateBooking, useProcessPayment } from "@/hooks/useBookings";
 import { useShowtimesByMovieAndDate, type TheaterWithShowtimes, type Showtime } from "@/hooks/useShowtimes";
+import { useBookedSeats } from "@/hooks/useBookedSeats";
 import { format, addDays } from "date-fns";
 import type { Movie } from "@/hooks/useMovies";
+import SeatSelection from "./SeatSelection";
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -19,10 +21,12 @@ const BookingModal = ({ isOpen, onClose, movie }: BookingModalProps) => {
   const [selectedShowtime, setSelectedShowtime] = useState<Showtime | null>(null);
   const [selectedTheater, setSelectedTheater] = useState<TheaterWithShowtimes | null>(null);
   const [seats, setSeats] = useState(1);
+  const [selectedSeatNumbers, setSelectedSeatNumbers] = useState<string[]>([]);
   const [bookingId, setBookingId] = useState<string | null>(null);
 
   const dateString = format(selectedDate, "yyyy-MM-dd");
   const { data: theatersWithShowtimes = [], isLoading: loadingShowtimes } = useShowtimesByMovieAndDate(movie.id, dateString);
+  const { data: bookedSeats = [], isLoading: loadingBookedSeats } = useBookedSeats(selectedShowtime?.id || null);
 
   const createBooking = useCreateBooking();
   const processPayment = useProcessPayment();
@@ -36,11 +40,16 @@ const BookingModal = ({ isOpen, onClose, movie }: BookingModalProps) => {
   const handleSelectShowtime = (theater: TheaterWithShowtimes, showtime: Showtime) => {
     setSelectedTheater(theater);
     setSelectedShowtime(showtime);
+    setSelectedSeatNumbers([]);
     setStep("seats");
   };
 
+  const handleSeatsSelected = useCallback((selectedSeats: string[]) => {
+    setSelectedSeatNumbers(selectedSeats);
+  }, []);
+
   const handleBooking = async () => {
-    if (!selectedShowtime || !selectedTheater) return;
+    if (!selectedShowtime || !selectedTheater || selectedSeatNumbers.length !== seats) return;
     
     try {
       const result = await createBooking.mutateAsync({
@@ -51,6 +60,7 @@ const BookingModal = ({ isOpen, onClose, movie }: BookingModalProps) => {
         show_time: selectedShowtime.show_time,
         theater_id: selectedTheater.theater.id,
         showtime_id: selectedShowtime.id,
+        seat_numbers: selectedSeatNumbers,
       });
       setBookingId(result.id);
       setStep("payment");
@@ -82,6 +92,7 @@ const BookingModal = ({ isOpen, onClose, movie }: BookingModalProps) => {
     setSelectedShowtime(null);
     setSelectedTheater(null);
     setSeats(1);
+    setSelectedSeatNumbers([]);
     setBookingId(null);
     onClose();
   };
@@ -90,6 +101,7 @@ const BookingModal = ({ isOpen, onClose, movie }: BookingModalProps) => {
     if (step === "seats") {
       setSelectedShowtime(null);
       setSelectedTheater(null);
+      setSelectedSeatNumbers([]);
       setStep("theater");
     }
   };
@@ -116,7 +128,9 @@ const BookingModal = ({ isOpen, onClose, movie }: BookingModalProps) => {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="relative w-full max-w-2xl bg-card border border-border rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+            className={`relative w-full bg-card border border-border rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto ${
+              step === "seats" ? "max-w-4xl" : "max-w-2xl"
+            }`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
@@ -171,6 +185,31 @@ const BookingModal = ({ isOpen, onClose, movie }: BookingModalProps) => {
                         <div className="text-xs opacity-70">{format(date, "MMM")}</div>
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                {/* Number of Tickets */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Users className="w-5 h-5 text-primary" />
+                    <span className="font-medium text-foreground">Number of Tickets</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setSeats(Math.max(1, seats - 1))}
+                      className="w-10 h-10 rounded-lg bg-secondary border border-border hover:border-primary transition-colors text-xl font-medium"
+                    >
+                      -
+                    </button>
+                    <span className="text-2xl font-bold text-foreground w-8 text-center">
+                      {seats}
+                    </span>
+                    <button
+                      onClick={() => setSeats(Math.min(10, seats + 1))}
+                      className="w-10 h-10 rounded-lg bg-secondary border border-border hover:border-primary transition-colors text-xl font-medium"
+                    >
+                      +
+                    </button>
                   </div>
                 </div>
 
@@ -261,59 +300,60 @@ const BookingModal = ({ isOpen, onClose, movie }: BookingModalProps) => {
                   <img
                     src={movie.poster_url || ""}
                     alt={movie.title}
-                    className="w-20 h-28 object-cover rounded-lg"
+                    className="w-16 h-24 object-cover rounded-lg"
                   />
-                  <div>
-                    <h2 className="font-display text-xl text-foreground">{movie.title}</h2>
-                    <p className="text-muted-foreground text-sm mt-1">
+                  <div className="flex-1">
+                    <h2 className="font-display text-lg text-foreground">{movie.title}</h2>
+                    <p className="text-muted-foreground text-sm">
                       {selectedTheater.theater.name}
                     </p>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                      <Calendar className="w-4 h-4" />
-                      <span>{format(selectedDate, "EEE, MMM dd")}</span>
-                      <Clock className="w-4 h-4 ml-2" />
-                      <span>{formatTime(selectedShowtime.show_time)}</span>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        <span>{format(selectedDate, "EEE, MMM dd")}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        <span>{formatTime(selectedShowtime.show_time)}</span>
+                      </div>
                     </div>
-                    <p className="text-primary font-semibold mt-2">
-                      ₹{price} per ticket
-                    </p>
                   </div>
                 </div>
 
-                {/* Seats Selection */}
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Users className="w-5 h-5 text-primary" />
-                    <span className="font-medium text-foreground">Number of Seats</span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={() => setSeats(Math.max(1, seats - 1))}
-                      className="w-10 h-10 rounded-lg bg-secondary border border-border hover:border-primary transition-colors text-xl font-medium"
-                    >
-                      -
-                    </button>
-                    <span className="text-2xl font-bold text-foreground w-8 text-center">
-                      {seats}
-                    </span>
-                    <button
-                      onClick={() => setSeats(Math.min(10, seats + 1))}
-                      className="w-10 h-10 rounded-lg bg-secondary border border-border hover:border-primary transition-colors text-xl font-medium"
-                    >
-                      +
-                    </button>
-                  </div>
+                {/* Seat Selection Heading */}
+                <div className="flex items-center gap-2 mb-4">
+                  <Armchair className="w-5 h-5 text-primary" />
+                  <span className="font-medium text-foreground">Select Your Seats ({seats} tickets)</span>
                 </div>
+
+                {/* Seat Selection Grid */}
+                {loadingBookedSeats ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <SeatSelection
+                    totalSeats={100}
+                    seatsToSelect={seats}
+                    bookedSeats={bookedSeats}
+                    onSeatsSelected={handleSeatsSelected}
+                  />
+                )}
 
                 {/* Total & Book Button */}
-                <div className="border-t border-border pt-4">
+                <div className="border-t border-border pt-4 mt-6">
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-muted-foreground">Total Amount</span>
+                    <div>
+                      <span className="text-muted-foreground">Total Amount</span>
+                      <p className="text-sm text-muted-foreground">
+                        {seats} × ₹{price}
+                      </p>
+                    </div>
                     <span className="text-2xl font-bold text-primary">₹{totalAmount}</span>
                   </div>
                   <Button
                     onClick={handleBooking}
-                    disabled={createBooking.isPending}
+                    disabled={createBooking.isPending || selectedSeatNumbers.length !== seats}
                     className="w-full bg-primary text-primary-foreground font-medium glow"
                   >
                     {createBooking.isPending ? (
@@ -321,6 +361,8 @@ const BookingModal = ({ isOpen, onClose, movie }: BookingModalProps) => {
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         Creating Booking...
                       </>
+                    ) : selectedSeatNumbers.length !== seats ? (
+                      `Select ${seats - selectedSeatNumbers.length} more seat${seats - selectedSeatNumbers.length > 1 ? 's' : ''}`
                     ) : (
                       "Proceed to Payment"
                     )}
@@ -356,7 +398,7 @@ const BookingModal = ({ isOpen, onClose, movie }: BookingModalProps) => {
                   </div>
                   <div className="flex justify-between mb-2">
                     <span className="text-muted-foreground">Seats</span>
-                    <span className="text-foreground">{seats}</span>
+                    <span className="text-foreground">{selectedSeatNumbers.sort().join(", ")}</span>
                   </div>
                   <div className="border-t border-border mt-3 pt-3 flex justify-between">
                     <span className="font-medium text-foreground">Total</span>
@@ -414,7 +456,7 @@ const BookingModal = ({ isOpen, onClose, movie }: BookingModalProps) => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Seats</span>
-                    <span className="text-foreground">{seats}</span>
+                    <span className="text-foreground">{selectedSeatNumbers.sort().join(", ")}</span>
                   </div>
                 </div>
 

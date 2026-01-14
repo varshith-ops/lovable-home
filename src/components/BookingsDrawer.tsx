@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Ticket, Calendar, Clock, Loader2, MapPin } from "lucide-react";
+import { X, Ticket, Calendar, Clock, Loader2, MapPin, Armchair } from "lucide-react";
 import { useBookings } from "@/hooks/useBookings";
 import { format } from "date-fns";
 
@@ -122,9 +122,17 @@ const BookingsDrawer = ({ isOpen, onClose }: BookingsDrawerProps) => {
                           </div>
 
                           <div className="mt-3 flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">
-                              {booking.seats} seat{booking.seats > 1 ? "s" : ""}
-                            </span>
+                            <div>
+                              <span className="text-sm text-muted-foreground">
+                                {booking.seats} seat{booking.seats > 1 ? "s" : ""}
+                              </span>
+                              {booking.seat_numbers && booking.seat_numbers.length > 0 && (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                                  <Armchair className="w-3 h-3" />
+                                  <span>{booking.seat_numbers.sort().join(", ")}</span>
+                                </div>
+                              )}
+                            </div>
                             <span className="font-semibold text-primary">
                               ₹{booking.total_amount}
                             </span>

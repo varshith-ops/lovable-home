@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           id: string
           movie_id: string
+          seat_numbers: string[] | null
           seats: number
           show_date: string
           show_time: string
@@ -33,6 +34,7 @@ export type Database = {
           created_at?: string
           id?: string
           movie_id: string
+          seat_numbers?: string[] | null
           seats?: number
           show_date: string
           show_time: string
@@ -47,6 +49,7 @@ export type Database = {
           created_at?: string
           id?: string
           movie_id?: string
+          seat_numbers?: string[] | null
           seats?: number
           show_date?: string
           show_time?: string
@@ -276,7 +279,21 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      booked_seats_by_showtime: {
+        Row: {
+          booked_seats: string[] | null
+          showtime_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_showtime_id_fkey"
+            columns: ["showtime_id"]
+            isOneToOne: false
+            referencedRelation: "showtimes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       [_ in never]: never
