@@ -22,7 +22,9 @@ export type Database = {
           seats: number
           show_date: string
           show_time: string
+          showtime_id: string | null
           status: Database["public"]["Enums"]["booking_status"] | null
+          theater_id: string | null
           total_amount: number
           updated_at: string
           user_id: string
@@ -34,7 +36,9 @@ export type Database = {
           seats?: number
           show_date: string
           show_time: string
+          showtime_id?: string | null
           status?: Database["public"]["Enums"]["booking_status"] | null
+          theater_id?: string | null
           total_amount: number
           updated_at?: string
           user_id: string
@@ -46,7 +50,9 @@ export type Database = {
           seats?: number
           show_date?: string
           show_time?: string
+          showtime_id?: string | null
           status?: Database["public"]["Enums"]["booking_status"] | null
+          theater_id?: string | null
           total_amount?: number
           updated_at?: string
           user_id?: string
@@ -57,6 +63,20 @@ export type Database = {
             columns: ["movie_id"]
             isOneToOne: false
             referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_showtime_id_fkey"
+            columns: ["showtime_id"]
+            isOneToOne: false
+            referencedRelation: "showtimes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_theater_id_fkey"
+            columns: ["theater_id"]
+            isOneToOne: false
+            referencedRelation: "theaters"
             referencedColumns: ["id"]
           },
         ]
@@ -143,6 +163,87 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      showtimes: {
+        Row: {
+          available_seats: number | null
+          created_at: string
+          id: string
+          movie_id: string
+          price: number | null
+          show_date: string
+          show_time: string
+          theater_id: string
+          updated_at: string
+        }
+        Insert: {
+          available_seats?: number | null
+          created_at?: string
+          id?: string
+          movie_id: string
+          price?: number | null
+          show_date: string
+          show_time: string
+          theater_id: string
+          updated_at?: string
+        }
+        Update: {
+          available_seats?: number | null
+          created_at?: string
+          id?: string
+          movie_id?: string
+          price?: number | null
+          show_date?: string
+          show_time?: string
+          theater_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "showtimes_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showtimes_theater_id_fkey"
+            columns: ["theater_id"]
+            isOneToOne: false
+            referencedRelation: "theaters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      theaters: {
+        Row: {
+          amenities: string[] | null
+          city: string
+          created_at: string
+          id: string
+          location: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          amenities?: string[] | null
+          city?: string
+          created_at?: string
+          id?: string
+          location: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          amenities?: string[] | null
+          city?: string
+          created_at?: string
+          id?: string
+          location?: string
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }

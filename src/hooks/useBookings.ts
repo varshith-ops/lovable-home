@@ -35,7 +35,8 @@ export const useBookings = () => {
         .from("bookings")
         .select(`
           *,
-          movies (*)
+          movies (*),
+          theaters (*)
         `)
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
@@ -65,7 +66,8 @@ export const useCreateBooking = () => {
         })
         .select(`
           *,
-          movies (*)
+          movies (*),
+          theaters (*)
         `)
         .single();
 
