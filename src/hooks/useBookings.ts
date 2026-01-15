@@ -7,21 +7,13 @@ import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 export type Booking = Tables<"bookings">;
 export type BookingInsert = TablesInsert<"bookings">;
 
-// Mock email notification
-const sendMockEmailNotification = (movieTitle: string, seats: number, showDate: string, paymentMethod: string) => {
+// Email notification is now handled by server-side toast simulation
+const showPaymentConfirmation = (movieTitle: string, seats: number, showDate: string, paymentMethod: string) => {
   const methodLabel = paymentMethod === "upi" ? "UPI" : paymentMethod === "credit" ? "Credit Card" : "Debit Card";
   toast({
     title: "📧 Email Notification Sent!",
     description: `Confirmation email sent for ${seats} seat(s) to "${movieTitle}" on ${showDate}. Paid via ${methodLabel}.`,
   });
-};
-
-// Mock payment processing
-const processMockPayment = async (amount: number): Promise<boolean> => {
-  // Simulate payment delay (1-2 seconds)
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  // 95% success rate for demo
-  return Math.random() > 0.05;
 };
 
 export const useBookings = () => {
@@ -104,27 +96,43 @@ export const useProcessPayment = () => {
       showDate: string;
       paymentMethod: string;
     }) => {
-      // Process mock payment
-      const paymentSuccess = await processMockPayment(amount);
+      // Get the current session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (!paymentSuccess) {
-        throw new Error("Payment failed. Please try again.");
+      if (!session) {
+        throw new Error("You must be logged in to process payment");
       }
 
-      // Update booking status to paid
-      const { data, error } = await supabase
-        .from("bookings")
-        .update({ status: "paid" })
-        .eq("id", bookingId)
-        .select()
-        .single();
+      // Call the server-side payment processing edge function
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-payment`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            bookingId,
+            amount,
+            paymentMethod,
+            movieTitle,
+            seats,
+            showDate,
+          }),
+        }
+      );
 
-      if (error) throw error;
+      const result = await response.json();
 
-      // Send mock email notification
-      sendMockEmailNotification(movieTitle, seats, showDate, paymentMethod);
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Payment failed. Please try again.");
+      }
 
-      return data;
+      // Show confirmation notification
+      showPaymentConfirmation(movieTitle, seats, showDate, paymentMethod);
+
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
