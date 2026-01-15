@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Calendar, Clock, Users, CreditCard, Loader2, CheckCircle, MapPin, Armchair } from "lucide-react";
+import { X, Calendar, Clock, Users, Loader2, CheckCircle, MapPin, Armchair, ArrowLeft, Ticket, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCreateBooking, useProcessPayment } from "@/hooks/useBookings";
 import { useShowtimesByMovieAndDate, type TheaterWithShowtimes, type Showtime } from "@/hooks/useShowtimes";
@@ -8,7 +8,7 @@ import { useBookedSeats } from "@/hooks/useBookedSeats";
 import { format, addDays } from "date-fns";
 import type { Movie } from "@/hooks/useMovies";
 import SeatSelection from "./SeatSelection";
-
+import PaymentForm from "./PaymentForm";
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -69,16 +69,17 @@ const BookingModal = ({ isOpen, onClose, movie }: BookingModalProps) => {
     }
   };
 
-  const handlePayment = async () => {
+  const handlePayment = async (method: string) => {
     if (!bookingId) return;
 
     try {
       await processPayment.mutateAsync({
         bookingId,
-        amount: totalAmount,
+        amount: totalAmount + Math.round(totalAmount * 0.05),
         movieTitle: movie.title,
         seats,
         showDate: format(selectedDate, "MMM dd, yyyy"),
+        paymentMethod: method,
       });
       setStep("success");
     } catch (error) {
@@ -103,6 +104,8 @@ const BookingModal = ({ isOpen, onClose, movie }: BookingModalProps) => {
       setSelectedTheater(null);
       setSelectedSeatNumbers([]);
       setStep("theater");
+    } else if (step === "payment") {
+      setStep("seats");
     }
   };
 
@@ -372,54 +375,84 @@ const BookingModal = ({ isOpen, onClose, movie }: BookingModalProps) => {
             )}
 
             {step === "payment" && selectedTheater && selectedShowtime && (
-              <div className="text-center py-6">
-                <CreditCard className="w-16 h-16 text-primary mx-auto mb-4" />
-                <h2 className="font-display text-2xl text-foreground mb-2">Payment</h2>
-                <p className="text-muted-foreground mb-6">
-                  Complete your payment for {movie.title}
-                </p>
+              <div className="py-2">
+                {/* Back Button */}
+                <button
+                  onClick={handleBack}
+                  className="mb-4 text-primary hover:underline text-sm flex items-center gap-1"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to seat selection
+                </button>
 
-                <div className="bg-secondary rounded-xl p-4 mb-6 text-left">
-                  <div className="flex justify-between mb-2">
-                    <span className="text-muted-foreground">Movie</span>
-                    <span className="text-foreground">{movie.title}</span>
+                {/* Payment Header */}
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-primary/10 rounded-xl">
+                    <Receipt className="w-6 h-6 text-primary" />
                   </div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-muted-foreground">Theater</span>
-                    <span className="text-foreground">{selectedTheater.theater.name}</span>
-                  </div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-muted-foreground">Date</span>
-                    <span className="text-foreground">{format(selectedDate, "MMM dd, yyyy")}</span>
-                  </div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-muted-foreground">Time</span>
-                    <span className="text-foreground">{formatTime(selectedShowtime.show_time)}</span>
-                  </div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-muted-foreground">Seats</span>
-                    <span className="text-foreground">{selectedSeatNumbers.sort().join(", ")}</span>
-                  </div>
-                  <div className="border-t border-border mt-3 pt-3 flex justify-between">
-                    <span className="font-medium text-foreground">Total</span>
-                    <span className="font-bold text-primary">₹{totalAmount}</span>
+                  <div>
+                    <h2 className="font-display text-2xl text-foreground">Payment</h2>
+                    <p className="text-muted-foreground text-sm">Complete your booking</p>
                   </div>
                 </div>
 
-                <Button
-                  onClick={handlePayment}
-                  disabled={processPayment.isPending}
-                  className="w-full bg-primary text-primary-foreground font-medium glow"
-                >
-                  {processPayment.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processing Payment...
-                    </>
-                  ) : (
-                    `Pay ₹${totalAmount}`
-                  )}
-                </Button>
+                {/* Booking Summary */}
+                <div className="bg-secondary/50 rounded-xl p-4 mb-6 border border-border">
+                  <div className="flex gap-4 mb-4">
+                    <img
+                      src={movie.poster_url || ""}
+                      alt={movie.title}
+                      className="w-16 h-24 object-cover rounded-lg"
+                    />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-foreground">{movie.title}</h3>
+                      <p className="text-muted-foreground text-sm">{selectedTheater.theater.name}</p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground mt-2">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>{format(selectedDate, "EEE, MMM dd")}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>{formatTime(selectedShowtime.show_time)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-border pt-3 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground flex items-center gap-2">
+                        <Ticket className="w-4 h-4" />
+                        Seats
+                      </span>
+                      <span className="text-foreground font-medium">
+                        {selectedSeatNumbers.sort().join(", ")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Ticket Price</span>
+                      <span className="text-foreground">{seats} × ₹{price}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Convenience Fee</span>
+                      <span className="text-foreground">₹{Math.round(totalAmount * 0.05)}</span>
+                    </div>
+                    <div className="border-t border-border pt-2 mt-2 flex justify-between">
+                      <span className="font-medium text-foreground">Total Amount</span>
+                      <span className="font-bold text-primary text-lg">
+                        ₹{totalAmount + Math.round(totalAmount * 0.05)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Form */}
+                <PaymentForm
+                  totalAmount={totalAmount + Math.round(totalAmount * 0.05)}
+                  onPaymentSubmit={handlePayment}
+                  isProcessing={processPayment.isPending}
+                />
               </div>
             )}
 
