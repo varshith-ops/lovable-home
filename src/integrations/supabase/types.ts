@@ -169,6 +169,42 @@ export type Database = {
         }
         Relationships: []
       }
+      seat_locks: {
+        Row: {
+          booking_id: string
+          locked_at: string
+          seat_number: string
+          showtime_id: string
+        }
+        Insert: {
+          booking_id: string
+          locked_at?: string
+          seat_number: string
+          showtime_id: string
+        }
+        Update: {
+          booking_id?: string
+          locked_at?: string
+          seat_number?: string
+          showtime_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seat_locks_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seat_locks_showtime_id_fkey"
+            columns: ["showtime_id"]
+            isOneToOne: false
+            referencedRelation: "showtimes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       showtimes: {
         Row: {
           available_seats: number | null

@@ -7,17 +7,17 @@ export const useBookedSeats = (showtimeId: string | null) => {
     queryFn: async () => {
       if (!showtimeId) return [];
 
-      // Get all bookings for this showtime and extract seat numbers
+      // Query the public seat_locks table to get ALL booked seats for this showtime
+      // This table has public read access, preventing double-booking race conditions
       const { data, error } = await supabase
-        .from("bookings")
-        .select("seat_numbers")
-        .eq("showtime_id", showtimeId)
-        .in("status", ["pending", "confirmed", "paid"]);
+        .from("seat_locks")
+        .select("seat_number")
+        .eq("showtime_id", showtimeId);
 
       if (error) throw error;
 
-      // Flatten all seat numbers from all bookings
-      const allBookedSeats = data?.flatMap(booking => booking.seat_numbers || []) || [];
+      // Extract seat numbers from the result
+      const allBookedSeats = data?.map(lock => lock.seat_number) || [];
       return allBookedSeats;
     },
     enabled: !!showtimeId,

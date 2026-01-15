@@ -89,10 +89,15 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+    // User client for auth and user-specific operations
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
+
+    // Admin client for checking all seat locks (bypasses RLS)
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get the authenticated user
     const {
@@ -122,6 +127,33 @@ serve(async (req) => {
 
     if (booking.status === "paid") {
       throw new Error("Booking already paid");
+    }
+
+    // CRITICAL: Verify seats are not already booked by another user
+    // Use admin client to check ALL seat locks for this showtime
+    if (booking.showtime_id && booking.seat_numbers && booking.seat_numbers.length > 0) {
+      const { data: existingLocks, error: lockError } = await supabaseAdmin
+        .from("seat_locks")
+        .select("seat_number, booking_id")
+        .eq("showtime_id", booking.showtime_id)
+        .in("seat_number", booking.seat_numbers);
+
+      if (lockError) {
+        console.error("Error checking seat locks:", lockError);
+        throw new Error("Failed to verify seat availability");
+      }
+
+      // Check if any locked seats belong to a DIFFERENT booking
+      const conflictingSeats = existingLocks?.filter(
+        (lock) => lock.booking_id !== paymentRequest.bookingId
+      );
+
+      if (conflictingSeats && conflictingSeats.length > 0) {
+        const conflictingSeatNumbers = conflictingSeats.map((s) => s.seat_number).join(", ");
+        throw new Error(
+          `Seats ${conflictingSeatNumbers} have already been booked. Please select different seats.`
+        );
+      }
     }
 
     // Verify amount matches booking
