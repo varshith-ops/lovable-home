@@ -8,10 +8,11 @@ export type Booking = Tables<"bookings">;
 export type BookingInsert = TablesInsert<"bookings">;
 
 // Mock email notification
-const sendMockEmailNotification = (movieTitle: string, seats: number, showDate: string) => {
+const sendMockEmailNotification = (movieTitle: string, seats: number, showDate: string, paymentMethod: string) => {
+  const methodLabel = paymentMethod === "upi" ? "UPI" : paymentMethod === "credit" ? "Credit Card" : "Debit Card";
   toast({
     title: "📧 Email Notification Sent!",
-    description: `Confirmation email sent for ${seats} seat(s) to "${movieTitle}" on ${showDate}`,
+    description: `Confirmation email sent for ${seats} seat(s) to "${movieTitle}" on ${showDate}. Paid via ${methodLabel}.`,
   });
 };
 
@@ -95,12 +96,13 @@ export const useProcessPayment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ bookingId, amount, movieTitle, seats, showDate }: { 
+    mutationFn: async ({ bookingId, amount, movieTitle, seats, showDate, paymentMethod }: { 
       bookingId: string; 
       amount: number;
       movieTitle: string;
       seats: number;
       showDate: string;
+      paymentMethod: string;
     }) => {
       // Process mock payment
       const paymentSuccess = await processMockPayment(amount);
@@ -120,7 +122,7 @@ export const useProcessPayment = () => {
       if (error) throw error;
 
       // Send mock email notification
-      sendMockEmailNotification(movieTitle, seats, showDate);
+      sendMockEmailNotification(movieTitle, seats, showDate, paymentMethod);
 
       return data;
     },
