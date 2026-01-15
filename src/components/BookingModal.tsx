@@ -166,36 +166,11 @@ const BookingModal = ({ isOpen, onClose, movie }: BookingModalProps) => {
                   </div>
                 </div>
 
-                {/* Date Selection */}
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Calendar className="w-5 h-5 text-primary" />
-                    <span className="font-medium text-foreground">Select Date</span>
-                  </div>
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {dates.map((date) => (
-                      <button
-                        key={date.toISOString()}
-                        onClick={() => setSelectedDate(date)}
-                        className={`flex-shrink-0 px-4 py-3 rounded-lg border transition-all ${
-                          format(selectedDate, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-secondary border-border hover:border-primary"
-                        }`}
-                      >
-                        <div className="text-xs opacity-70">{format(date, "EEE")}</div>
-                        <div className="font-semibold">{format(date, "dd")}</div>
-                        <div className="text-xs opacity-70">{format(date, "MMM")}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Number of Tickets */}
+                {/* Number of Tickets - Now BEFORE date selection */}
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-3">
                     <Users className="w-5 h-5 text-primary" />
-                    <span className="font-medium text-foreground">Number of Tickets</span>
+                    <span className="font-medium text-foreground">Number of Seats</span>
                   </div>
                   <div className="flex items-center gap-4">
                     <button
@@ -213,10 +188,52 @@ const BookingModal = ({ isOpen, onClose, movie }: BookingModalProps) => {
                     >
                       +
                     </button>
+                    <span className="text-muted-foreground text-sm ml-2">
+                      {seats === 1 ? "seat" : "seats"} selected
+                    </span>
                   </div>
                 </div>
 
-                {/* Theaters Section */}
+                {/* Horizontal Date Selection - Now AFTER seat selection */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Calendar className="w-5 h-5 text-primary" />
+                    <span className="font-medium text-foreground">Select Date</span>
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
+                    {dates.map((date) => (
+                      <motion.button
+                        key={date.toISOString()}
+                        onClick={() => setSelectedDate(date)}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className={`flex-shrink-0 min-w-[72px] px-4 py-3 rounded-xl border-2 transition-all ${
+                          format(selectedDate, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
+                            ? "bg-primary text-primary-foreground border-primary shadow-lg"
+                            : "bg-secondary/50 border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <div className={`text-xs font-medium ${
+                          format(selectedDate, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
+                            ? "text-primary-foreground/80"
+                            : "text-muted-foreground"
+                        }`}>
+                          {format(date, "EEE")}
+                        </div>
+                        <div className="font-bold text-lg">{format(date, "dd")}</div>
+                        <div className={`text-xs ${
+                          format(selectedDate, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
+                            ? "text-primary-foreground/80"
+                            : "text-muted-foreground"
+                        }`}>
+                          {format(date, "MMM")}
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Theaters & Showtimes Section */}
                 <div>
                   <h2 className="font-display text-2xl text-foreground mb-4">
                     Theaters Showing {movie.title}
@@ -228,8 +245,9 @@ const BookingModal = ({ isOpen, onClose, movie }: BookingModalProps) => {
                     </div>
                   ) : theatersWithShowtimes.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">
+                      <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
                       <p>No showtimes available for this date.</p>
-                      <p className="text-sm mt-2">Please select a different date.</p>
+                      <p className="text-sm mt-2">Please select a different date above.</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -266,19 +284,25 @@ const BookingModal = ({ isOpen, onClose, movie }: BookingModalProps) => {
                           )}
 
                           {/* Showtimes */}
-                          <div className="flex flex-wrap gap-2">
-                            {showtimes.map((showtime) => (
-                              <button
-                                key={showtime.id}
-                                onClick={() => handleSelectShowtime({ theater, showtimes }, showtime)}
-                                className="px-4 py-2 rounded-lg border border-primary/50 bg-background hover:bg-primary hover:text-primary-foreground transition-all group"
-                              >
-                                <div className="font-medium">{formatTime(showtime.show_time)}</div>
-                                <div className="text-xs text-muted-foreground group-hover:text-primary-foreground/80">
-                                  ₹{showtime.price}
-                                </div>
-                              </button>
-                            ))}
+                          <div>
+                            <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              Available Showtimes
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {showtimes.map((showtime) => (
+                                <button
+                                  key={showtime.id}
+                                  onClick={() => handleSelectShowtime({ theater, showtimes }, showtime)}
+                                  className="px-4 py-2 rounded-lg border border-primary/50 bg-background hover:bg-primary hover:text-primary-foreground transition-all group"
+                                >
+                                  <div className="font-medium">{formatTime(showtime.show_time)}</div>
+                                  <div className="text-xs text-muted-foreground group-hover:text-primary-foreground/80">
+                                    ₹{showtime.price}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         </motion.div>
                       ))}
